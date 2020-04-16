@@ -1,0 +1,163 @@
+
+Solve the following queries. Submmit a text with all the queries enumerated and solved.
+
+
+
+1. Write a MongoDB query to display the fields restaurant_id, name, borough and cuisine, but exclude the field _id for all the documents in the collection restaurant.
+
+2. Write a MongoDB query to display the next 5 restaurants after skipping first 5 which are in the borough Bronx.
+
+3. Write a MongoDB query to find the restaurants that achieved a score, more than 80 but less than 100.
+
+4. Write a MongoDB query to find the restaurants that does not prepare any cuisine of 'American' and their grade score more than 70 and latitude less than -65.754168.
+
+5. Write a MongoDB query to find the restaurants which does not prepare any cuisine of 'American' and achieved a grade point 'A' not belongs to the borough Brooklyn. The document must be displayed according to the cuisine in descending order.
+
+6. Write a MongoDB query to find the restaurant Id, name, borough and cuisine for those restaurants which contains 'Wil' as first three letters for its name.
+
+
+
+7. Write a MongoDB query to find the restaurant Id, name, borough and cuisine for those restaurants which contains 'ces' as last three letters for its name.
+
+8. Write a MongoDB query to find the restaurant Id, name, borough and cuisine for those restaurants which contains 'Reg' as three letters somewhere in its name.
+
+9. Write a MongoDB query to find the restaurant Id, name, borough and cuisine for those restaurants which belongs to the borough Staten Island or Queens or Bronxor Brooklyn.
+
+10. Write a MongoDB query to find the restaurant Id, name, borough and cuisine for those restaurants which prepared dish except 'American' and 'Chinese' or restaurant's name begins with letter 'Wil'.
+
+11. Write a MongoDB query to find the restaurant Id, name and grades for those restaurants where 2nd element of grades array contains a grade of "A" and score 9 on an ISODate "2014-08-11T00:00:00Z".
+
+12. Write a MongoDB query to arrange the name of the cuisine in ascending order and for those same cuisine borough should be in descending order.
+
+
+
+
+
+
+
+
+SOLUTIONS.
+
+
+1.
+
+var pipeline1 = [
+{"$project":
+	{ "_id":0 , "restaurant_id":1, "name" : 1, "borough" : 1, "cuisine" : 1}
+}
+];
+
+db.restaurants.aggregate(pipeline1)
+
+db.restaurants.find({},{ "_id":0 , "restaurant_id":1, "name" : 1, "borough" : 1, "cuisine" : 1}).pretty()
+
+
+¿?¿?¿? hay alguna forma para que aparezca el orden de las vbles que tengo en el project
+
+
+2. 
+
+db.restaurants.find({"borough": "Bronx"}).skip(5).limit(5).pretty()
+
+¿?¿?¿? skip y limit dentro de un aggregate como seria
+
+3. 
+
+db.restaurants.find(
+	{"grades": 
+		{ $elemMatch: {$and: [{"score":{$lte: 100}}, {"score": {$gt: 80}} ] }}
+	}
+).pretty()
+
+
+4. 
+
+
+db.restaurants.find(
+{"grades":
+	{$elemMatch: {"score":{$gte: 70}}},
+"cuisine": { "$nin": [/American/]},
+"address.coord.1": {$lte: -65.754168} }
+).pretty()
+
+
+5. 
+
+db.restaurants.find(
+	{ "cuisine": { "$nin": [/American/]},
+		"grades": { $elemMatch: { "grade": "A"}},
+		"borough": { $nin: [/Brooklyn/]}
+	}
+).pretty()
+
+
+6. 
+
+db.restaurants.find(
+{"name": { "$in": [/^Will/]}},
+{"restaurant_id" : 1, "name" : 1, "borough" : 1, "cuisine" : 1, _id : 0}
+).pretty()
+
+7. 
+
+db.restaurants.find(
+{"name": { "$in": [/ces$/]}},
+{"restaurant_id":1, "name": 1, "borough": 1, "cuisine": 1, _id:0}
+).pretty()
+
+
+8. 
+
+db.restaurants.find(
+{"name": { "$in": [/Reg/]}},
+{"restaurant_id":1, "name": 1, "borough": 1, "cuisine": 1, _id:0}
+).pretty()
+
+
+9.
+
+db.restaurants.find(
+{$or:[{"borough": "Staten Island"},{"borough": "Queens"},{"borough": "Brooklyn"},{"borough": "Bronx"}]},
+{"restaurant_id":1, "name": 1, "borough": 1, "cuisine": 1, _id:0}
+).pretty()
+
+
+10. 
+
+db.restaurants.find(
+{$or:[ 
+		{$and:[ {"cuisine": {$nin:[/American/]}} , {"cuisine": {$nin:[/Chinese/]}} ] },
+		{"name": {$in:[/^Wil/]}}
+		]
+},
+{"restaurant_id":1, "name": 1, "borough": 1, "cuisine": 1, _id:0}
+).pretty()
+
+
+11. 
+
+db.restaurants.find(
+{$and: [ 
+{"grades.1.grade": {$eq: "A" } }, 
+{"grades.1.score": 9} , 
+{"grades.1.date": ISODate("2014-08-11T00:00:00Z")}
+]
+},
+{"restaurant_id":1, "name": 1, "grades": 1, _id:0}
+).pretty()
+
+
+12. 
+
+db.restaurants.find({},{"cuisine": 1, borough:1}).sort( {"cuisine": 1, "borough": -1 })
+
+
+
+
+
+
+
+
+
+
+

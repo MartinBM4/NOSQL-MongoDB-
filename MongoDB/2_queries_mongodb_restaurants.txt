@@ -1,0 +1,176 @@
+Solve these queries on the Restaurants collection ussing Aggregate pipelines:
+
+
+Obtain restaurants in "Queens"
+Obtain restaurants outside "Queens"
+Obtain only the restaurant name and cuisine
+Obtain only the restaurant name and cuisine for those in "Queens"
+Find the number of restaurants in each borough
+Find the restaurants in the borough "Queens" and with cuisine "Brazilian", and get the number of restaurants for each zipcode in this boroug
+Obtain the average score for restaurants in each borough
+Obtain the average score for restaurants in each borough ordered by this average descending
+ Propose and resolve 5 queries using $unwind, $lookup, $limit, $skip and $count
+
+
+
+
+
+
+
+
+
+SOLUTIONS.
+
+
+
+
+db.restaurants.aggregate(pipeline8).pretty()
+
+1. 
+
+var pipeline = [
+{$match:
+{"borough": "Queens"}
+}
+]
+
+
+2. 
+
+var pipeline2 = [
+{$match:
+{"borough": {$ne:"Queens"}}
+}
+]
+
+
+3. 
+
+var pipeline3 = [
+{$project: 
+{"name": 1, "cuisine": 1, _id:0}
+}
+]
+
+4. 
+
+var pipeline4 = [
+{$match:
+{"borough": {$eq: "Queens"}}
+},
+{$project: 
+{"name": 1, "cuisine": 1, _id:0}
+}
+]
+
+
+5. 
+
+var pipeline5 = [
+{"$group":
+{"_id":"$borough" , "numRest": {"$sum":1}}
+}
+]
+
+
+6. 
+
+var pipeline6 = [
+{$match:
+	{"borough": "Queens" , 
+	"cuisine": "Brazilian"} 
+},
+{"$group":
+	{"_id": "$address.zipcode", "numRest": {$sum:1}}
+}
+]
+
+
+7. 
+
+var pipeline7 = [	
+	{"$addFields": 
+		{"media": {"$avg": "$grades.score"}  }
+	},
+	{"$group": 
+		{"_id": "$borough", "mediadef": {$avg: "$media"}}
+	}
+]
+
+
+8. 
+
+var pipeline8 = [	
+	{"$addFields": 
+		{"media": {"$avg": "$grades.score"}  }
+	},
+	{"$group": 
+		{"_id": "$borough", "mediadef": {$avg: "$media"}}
+	},
+	{$sort:{"mediadef": -1}
+	}
+]
+
+
+9. 
+
+# UNWIND
+Se quiere identificar aquellos restaurantes con el mayor score absoluto (el mayor de todo GRADES)
+
+db.restaurants.aggregate([
+{"$unwind": "$grades"},
+{"$group":{"_id": {idrestaurante: "$restaurant_id", nombre: "$name" },puntuacion_maxima: {"$max":"$grades.score"}}},
+{$sort:{"puntuacion_maxima": -1}}
+])
+
+
+9. 
+
+#lookup
+primero creamos una pequeña base de datos con un dato en comun (restaurant_id y rest_id) con la base de datos restaurants
+
+db.createCollection("cap")
+
+
+db.cap.insertMany([
+  {"capacidad": 70, "resta_ids":"40365288"},
+  {"capacidad": 80, "resta_ids":"40366652"},
+  {"capacidad": 90, "resta_ids":"40368065"},
+  {"capacidad": 100, "resta_ids":"40369482"}
+])
+
+
+
+db.cap.aggregate([
+{"$lookup": {from: "restaurants", localField: "resta_ids", "foreignField" : "restaurant_id", "as": "caracteristicas"}}
+]).pretty()
+
+
+10.
+
+#limit
+
+db.restaurants.aggregate(
+[
+{$sort: {restaurant_id:-1} },
+{$limit:3}
+]
+).pretty()
+
+11.
+
+#limit
+
+db.restaurants.aggregate(
+[
+{$match:{"cuisine": "Other"} },
+{$count: "other_cuisine"}
+]
+).pretty()
+
+
+
+
+
+
+

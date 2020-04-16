@@ -1,0 +1,82 @@
+#Download the datasets
+https://www.santacruzdetenerife.es/opendata/dataset/barrios-poblacion-ano-2019
+https://www.santacruzdetenerife.es/opendata/dataset/fuentes-publicas
+
+#It's neccesary modifcate the files. The orginal files are a Feauture collections and mongo import it as one file, so we found the web 
+#https://jqplay.org/. Copy the original and write .features[] in the filter field
+
+#Start mongod
+mongod
+
+#Import documents from file
+mongoimport --collection=barrio_ten --db=spatial --file=/home/master/mdnosql/MongoDB/barrios_santa_cruz.geojson
+mongoimport --collection=fuentes_ten --db=spatial --file=/home/master/mdnosql/MongoDB/fuentes_santa_cruz.geojson
+
+#Start mongo shell
+mongo
+
+#Show all the databases and select spatial
+show dbs
+use spatial
+
+#Create 2dsphere index
+db.barrio_ten.createIndex({geometry: "2dsphere"})
+db.fuentes_ten.createIndex({geometry: "2dsphere"})
+
+#Queries. The Carto tool help us to confirm the queries
+#1 Found the number of fountains in the Los Campitos neighborhood
+var barrio = db.barrio_ten.findOne({
+	geometry:{$geoIntersects: {$geometry: {type:"Point",coordinates:[-16.2632831128, 28.4861249246]}}}
+})
+db.fuentes_ten.find({geometry:{$geoWithin:{$geometry:barrio.geometry}}}).count()
+
+#2 With the geojson.io tool, create a square and show the street, the neighborhood and the model of the fountains in it
+db.fuentes_ten.find({geometry:{$geoWithin:{$geometry: {type:"Polygon",coordinates:[
+	[
+	 [-16.26804828643799,  28.455901435565778],
+	 [-16.249594688415527, 28.455901435565778],
+	 [-16.249594688415527, 28.470011696401812],
+	 [-16.26804828643799,  28.470011696401812],
+	 [-16.26804828643799,  28.455901435565778]
+	]
+]}}}},{_id:0, "properties.DIRECCION": 1, "properties.BARRIO":1, "properties.MODELO":1} )
+
+#3 Find all fountains in a radius of 2 miles sorted from the nearest at point -16.2597756343, 28.4656841003
+var METERS_PER_MILE = 1609.34
+db.fuentes_ten.find({ geometry: { $nearSphere: { $geometry: { type: "Point", coordinates: [ -16.2597756343, 28.4656841003
+ ] }, $maxDistance: 2 * METERS_PER_MILE } } })
+
+#4 Create a line between two points and find the neighborhood intersecting with it. Sorted by population
+db.barrio_ten.find({
+	geometry:{$geoIntersects: {$geometry: {"type": "LineString",
+        "coordinates": [
+          [
+            -16.277897357940674,
+            28.456448526233523
+          ],
+          [
+            -16.25369846820831,
+            28.47202527318932
+          ]
+        ]}}}
+}, {_id: 0, "properties.BARRIO": 1, "properties.TOTAL": 1}).sort({"properties.TOTAL": -1});
+
+#5 All the fountains in a maximun distance of 2Km given a point
+db.fuentes_ten.aggregate (
+    [{ 
+       $geoNear: { 
+         near : {
+           "type": "Point", 
+           "coordinates": [-16.26355290412903, 28.466125903445164] 
+         }, 
+         distanceField: "dist.calculated", 
+         maxDistance: 2000, 
+         num: 10, 
+         spherical :true
+       }
+    }]
+ )
+ 
+María Fernández Hijano
+Martín Blázquez Moreno
+Juan Rafael Caro Romero
